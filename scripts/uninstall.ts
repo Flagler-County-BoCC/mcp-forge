@@ -1,5 +1,5 @@
 /**
- * Removes mcp-forge from Claude Desktop and Claude Code (CLI).
+ * Removes mcp-forge from Claude Desktop and Claude Code CLI.
  * Run with: npm run uninstall
  *
  * - Removes only the mcp-forge entry from each config
@@ -32,7 +32,7 @@ function getClaudeDesktopConfigPath(): string {
 }
 
 function getClaudeCodeConfigPath(): string {
-  return path.join(os.homedir(), '.claude', 'settings.json');
+  return path.join(os.homedir(), '.claude.json');
 }
 
 // ─── JSON helpers ─────────────────────────────────────────────────────────────
@@ -75,7 +75,6 @@ function deregister(configPath: string, label: string): void {
   if (Object.keys(mcpServers).length === 0) delete config['mcpServers'];
 
   writeJson(configPath, config);
-
   console.log(`\n  Removed from ${label}`);
   console.log(`  Config: ${configPath}`);
 }
