@@ -28,7 +28,8 @@
     "test:integration": "vitest run tests/integration",
     "typecheck": "tsc --noEmit",
     "inspect": "npx @modelcontextprotocol/inspector node dist/stdio.js",
-    "setup": "npm run build && tsx scripts/setup.ts"
+    "setup": "npm run build && tsx scripts/setup.ts",
+    "uninstall": "tsx scripts/uninstall.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
