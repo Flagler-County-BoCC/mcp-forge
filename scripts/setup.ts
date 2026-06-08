@@ -1,11 +1,12 @@
 /**
- * Registers mcp-forge in Claude Desktop's config file.
+ * Registers mcp-forge in Claude Desktop and Claude Code (CLI).
  * Run with: npm run setup
  *
- * - Detects config path per OS (macOS / Windows / Linux)
- * - Merges the entry non-destructively (preserves other MCP servers)
- * - Creates the config file if it doesn't exist yet
- * - Requires dist/stdio.js to be built first
+ * Claude Desktop: detects config path per OS, merges entry non-destructively
+ * Claude Code:    writes to ~/.claude/settings.json
+ *
+ * Both operations write a .bak backup before modifying.
+ * Requires dist/stdio.js to be built first (handled by `npm run setup`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,17 +16,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BINARY = path.join(ROOT, 'dist', 'stdio.js');
 const SERVER_KEY = 'mcp-forge';
+const SERVER_ENTRY = { command: 'node', args: [BINARY] };
 
-function getConfigPath(): string {
+// ─── Config path helpers ──────────────────────────────────────────────────────
+
+function getClaudeDesktopConfigPath(): string {
   switch (process.platform) {
     case 'darwin':
-      return path.join(
-        os.homedir(),
-        'Library',
-        'Application Support',
-        'Claude',
-        'claude_desktop_config.json',
-      );
+      return path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
     case 'win32':
       return path.join(
         process.env['APPDATA'] ?? path.join(os.homedir(), 'AppData', 'Roaming'),
@@ -37,33 +35,62 @@ function getConfigPath(): string {
   }
 }
 
-function readConfig(configPath: string): Record<string, unknown> {
-  if (!fs.existsSync(configPath)) return {};
-  const raw = fs.readFileSync(configPath, 'utf-8').trim();
+function getClaudeCodeConfigPath(): string {
+  return path.join(os.homedir(), '.claude', 'settings.json');
+}
+
+// ─── JSON helpers ─────────────────────────────────────────────────────────────
+
+function readJson(filePath: string): Record<string, unknown> {
+  if (!fs.existsSync(filePath)) return {};
+  const raw = fs.readFileSync(filePath, 'utf-8').trim();
   if (!raw) return {};
   try {
     return JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    console.error(`\nExisting config at ${configPath} is not valid JSON.`);
-    console.error('Please fix it manually before running setup.\n');
+    console.error(`\n  Config at ${filePath} is not valid JSON — please fix it manually.\n`);
     process.exit(1);
   }
 }
 
-function printManualInstructions(): void {
-  console.log('\nAdd this to your MCP client config manually:\n');
-  console.log(
-    JSON.stringify(
-      { mcpServers: { [SERVER_KEY]: { command: 'node', args: [BINARY] } } },
-      null,
-      2,
-    ),
-  );
-  console.log();
+function writeJson(filePath: string, data: Record<string, unknown>): void {
+  const backupPath = filePath + '.bak';
+  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, backupPath);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
+// ─── Registration ─────────────────────────────────────────────────────────────
+
+function register(configPath: string, label: string): void {
+  const configDir = path.dirname(configPath);
+
+  // For Claude Desktop, warn if the app doesn't appear to be installed
+  const isDesktop = configPath.includes('Claude') && configPath.endsWith('claude_desktop_config.json');
+  if (isDesktop && !fs.existsSync(configDir)) {
+    console.warn(`\n  ${label}: config directory not found — Claude Desktop may not be installed.`);
+    console.warn(`  Expected: ${configPath}`);
+    return;
+  }
+
+  const config = readJson(configPath);
+  const mcpServers = (config['mcpServers'] as Record<string, unknown> | undefined) ?? {};
+  const isUpdate = SERVER_KEY in mcpServers;
+
+  mcpServers[SERVER_KEY] = SERVER_ENTRY;
+  config['mcpServers'] = mcpServers;
+
+  writeJson(configPath, config);
+
+  const action = isUpdate ? 'Updated' : 'Registered';
+  console.log(`\n  ${action} in ${label}`);
+  console.log(`  Config: ${configPath}`);
+  console.log(`  Binary: ${BINARY}`);
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 function main(): void {
-  // Must be built before setup
   if (!fs.existsSync(BINARY)) {
     console.error('\n  Build not found. Run this first:\n');
     console.error('    npm run build\n');
@@ -72,39 +99,11 @@ function main(): void {
     process.exit(1);
   }
 
-  const configPath = getConfigPath();
-  const configDir = path.dirname(configPath);
+  register(getClaudeDesktopConfigPath(), 'Claude Desktop');
+  register(getClaudeCodeConfigPath(),    'Claude Code   ');
 
-  // If the Claude config directory doesn't exist, Claude Desktop may not be installed
-  if (!fs.existsSync(configDir)) {
-    console.warn('\n  Claude Desktop config directory not found:');
-    console.warn(`  ${configDir}\n`);
-    console.warn('  Claude Desktop may not be installed, or its config is in a custom location.');
-    printManualInstructions();
-    process.exit(0);
-  }
-
-  const config = readConfig(configPath);
-  const mcpServers = (config['mcpServers'] as Record<string, unknown> | undefined) ?? {};
-  const isUpdate = SERVER_KEY in mcpServers;
-
-  mcpServers[SERVER_KEY] = { command: 'node', args: [BINARY] };
-  config['mcpServers'] = mcpServers;
-
-  // Write a backup before modifying
-  const backupPath = configPath + '.bak';
-  if (fs.existsSync(configPath)) {
-    fs.copyFileSync(configPath, backupPath);
-  }
-
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
-
-  const action = isUpdate ? 'Updated' : 'Registered';
-  console.log(`\n  ${action} ${SERVER_KEY} in Claude Desktop config.`);
-  console.log(`  Config: ${configPath}`);
-  console.log(`  Backup: ${backupPath}`);
-  console.log(`  Binary: ${BINARY}`);
-  console.log('\n  Restart Claude Desktop to apply the change.\n');
+  console.log('\n  Restart Claude Desktop to apply the change.');
+  console.log('  Claude Code picks up the change automatically.\n');
 }
 
 main();
