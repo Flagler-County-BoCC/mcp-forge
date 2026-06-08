@@ -19,7 +19,7 @@ Connect this server to any MCP client and call its tools to retrieve the exact p
 ## Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Flagler-County-BoCC/mcp-forge
 cd mcp-forge
 npm install
 npm run setup
