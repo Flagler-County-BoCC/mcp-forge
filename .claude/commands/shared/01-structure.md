@@ -136,11 +136,21 @@ src/
 tests/
   integration/
     <module>.tool.test.ts
+scripts/
+  setup.ts            # registers in Claude Desktop + Claude Code; installs slash commands
+  uninstall.ts        # de-registers; removes slash commands
+templates/
+  .claude/
+    commands/
+      <prefix>-audit.md
+      <prefix>-plan.md
+      <prefix>-step.md
+      <prefix>-rewrite.md
 .env.example
 .env.test
 ```
 
-No `middleware/`, no `routes/`, no `app.ts`. No HTTP server. `server.ts` creates the `McpServer`; `stdio.ts` connects the transport.
+No `middleware/`, no `routes/`, no `app.ts`. No HTTP server. `server.ts` creates the `McpServer`; `stdio.ts` connects the transport. `scripts/setup.ts` is mandatory — see `entrypoints/mcp-server.md` for the full implementation.
 
 Domain names for `tools/<module>/` come from `AUDIT_MANIFEST.mcpTools[*].module` (deduplicated, sorted).
 
@@ -251,11 +261,13 @@ Also add: `"bin": { "<projectName>": "./dist/index.js" }`. Ensure `dist/index.js
   "test:coverage":    "vitest run --coverage",
   "test:integration": "vitest run tests/integration",
   "typecheck":        "tsc --noEmit",
-  "inspect":          "npx @modelcontextprotocol/inspector node dist/stdio.js"
+  "inspect":          "npx @modelcontextprotocol/inspector node dist/stdio.js",
+  "setup":            "npm run build && tsx scripts/setup.ts",
+  "uninstall":        "tsx scripts/uninstall.ts"
 }
 ```
 
-`inspect` script allows local debugging via the MCP Inspector tool.
+`inspect` allows local debugging via the MCP Inspector. `setup` builds then registers the server in Claude Desktop and Claude Code, and installs slash commands to `~/.claude/commands/`. `uninstall` reverses all registration.
 
 ### devDependencies — all project types
 
@@ -292,6 +304,8 @@ Add only when applicable:
 
 ## tsconfig.json — all types
 
+The base `tsconfig.json` covers the full source tree (src, tests, scripts) for editor support and the `typecheck` command. It does **not** set `rootDir` — that belongs only in `tsconfig.build.json`. Mixing `rootDir: "src"` with `include: ["src", "tests"]` in the same tsconfig causes a TypeScript error (`File 'tests/...' is not under 'rootDir'`).
+
 ```json
 {
   "compilerOptions": {
@@ -300,24 +314,42 @@ Add only when applicable:
     "moduleResolution": "Node16",
     "lib": ["ES2022"],
     "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src"],
+  "include": ["src", "tests", "scripts"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
-For **library** type, also add: `"declarationDir": "dist"` to `compilerOptions`.
+`esModuleInterop: true` and `allowSyntheticDefaultImports: true` are required for default imports from `node:path`, `node:fs/promises`, and other CJS-originated modules.
+
+## tsconfig.build.json — all types
+
+The build config restricts compilation to `src/` only and sets `rootDir` to enforce the output shape. This is the config used by `tsc -p tsconfig.build.json`.
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "tests", "scripts"]
+}
+```
+
+For **library** type, also add: `"declarationDir": "dist"` to `tsconfig.build.json`'s `compilerOptions`.
 
 ## .prettierrc.json — all types
 

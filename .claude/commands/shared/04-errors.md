@@ -29,7 +29,11 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.code = code;
     this.isOperational = isOperational;
-    this.context = context;
+    // Guard required by exactOptionalPropertyTypes: assigning `undefined` to an optional
+    // property is a type error when that flag is on. Use the if-guard pattern instead.
+    if (context !== undefined) {
+      this.context = context;
+    }
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -161,6 +165,8 @@ Workers catch errors per job handler and throw `AppError` subclasses. The queue 
 ### cli — command-level error handling
 
 CLI commands catch errors in `.action()` callbacks, log via logger, and `process.exit(1)`. Never propagate to top-level unhandled rejection.
+
+**`exactOptionalPropertyTypes` rule:** When `tsconfig.json` has `exactOptionalPropertyTypes: true` (required by this standard), you cannot write `this.optionalProp = maybeUndefined` — TypeScript treats `undefined` as an invalid assignment to an optional property declared as `prop?: T`. Use the guard pattern `if (value !== undefined) { this.prop = value; }` for every optional property set from a possibly-undefined parameter. Apply this same guard anywhere optional properties are assigned from optional parameters throughout the codebase.
 
 ## Determinism Rules
 - `ExternalServiceError` must be the only error class that wraps upstream API errors — never re-use `InternalServerError` for external failures.

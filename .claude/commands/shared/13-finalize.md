@@ -75,6 +75,11 @@ Output as markdown checkboxes — mark `[x]` if satisfied or `[ ]` with a one-li
 - [ ] `src/stdio.ts` is the only file calling `server.connect()`
 - [ ] Every tool in `AUDIT_MANIFEST.mcpTools` has a `server.tool()` registration
 - [ ] `src/lib/tool-error-handler.ts` exists and is used by all tool handlers
+- [ ] `scripts/setup.ts` exists and registers in Claude Desktop, Claude Code (`~/.claude.json`), and installs slash commands to `~/.claude/commands/`
+- [ ] `scripts/uninstall.ts` exists and reverses all registration
+- [ ] `templates/.claude/commands/` contains at least one slash command template
+- [ ] `package.json` has `"setup": "npm run build && tsx scripts/setup.ts"` and `"uninstall": "tsx scripts/uninstall.ts"`
+- [ ] Config file writes use `node:fs` + `JSON.parse`/`JSON.stringify` — never PowerShell or shell JSON manipulation
 
 ### Config & Secrets (all except library)
 - [ ] No string literal secrets in any `src/` file
