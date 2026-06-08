@@ -48,7 +48,36 @@ Build first if you haven't already: `npm run build`
 
 > `PROMPTS_DIR` defaults to `.claude/commands` inside the repo — no environment variable needed.
 
-## How to use it
+## Using slash commands in Claude Code (recommended)
+
+Copy the template commands into any project you want to rewrite:
+
+```bash
+cp -r /path/to/mcp-forge/templates/.claude <your-project>/.claude
+```
+
+Then open that project in Claude Code and use:
+
+| Command | Description |
+|---|---|
+| `/forge-audit` | Audit the codebase and emit an `AUDIT_MANIFEST`. Always start here. |
+| `/forge-plan [projectType]` | List which steps apply to this project type. Run after audit. |
+| `/forge-step <n> [projectType]` | Apply a specific step. Example: `/forge-step 3` or `/forge-step 8 mcp-server` |
+| `/forge-rewrite` | Single-pass full rewrite for small projects (< 2 000 lines). |
+
+**Typical workflow:**
+```
+/forge-audit
+/forge-plan
+/forge-step 1
+/forge-step 2
+... (continue through the steps)
+/forge-step 8 mcp-server
+/forge-step 9
+... through /forge-step 14
+```
+
+## Using the MCP tools directly
 
 **Incremental rewrite (large projects, recommended):**
 
