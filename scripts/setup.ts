@@ -1,11 +1,13 @@
 /**
  * Registers mcp-forge in Claude Desktop and Claude Code CLI.
+ * Also installs /forge-* slash commands globally to ~/.claude/commands/.
  * Run with: npm run setup
  *
  * Claude Desktop — per-OS config file (claude_desktop_config.json)
  * Claude Code    — ~/.claude.json, mcpServers key, type: "stdio"
+ *                  ~/.claude/commands/ — global slash commands (available in every project)
  *
- * Both operations write a .bak backup before modifying.
+ * Both config operations write a .bak backup before modifying.
  * Requires dist/stdio.js to be built first (handled by `npm run setup`).
  */
 import fs from 'node:fs';
@@ -16,6 +18,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BINARY = path.join(ROOT, 'dist', 'stdio.js');
 const SERVER_KEY = 'mcp-forge';
+const TEMPLATES_DIR = path.join(ROOT, 'templates', '.claude', 'commands');
+const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 
 // ─── Config path helpers ──────────────────────────────────────────────────────
 
@@ -96,6 +100,35 @@ function registerClaudeCode(configPath: string): void {
   console.log(`  Config: ${configPath}`);
 }
 
+function installCommands(): void {
+  if (!fs.existsSync(TEMPLATES_DIR)) {
+    console.warn(`\n  Slash commands: templates directory not found — skipping.`);
+    console.warn(`  Expected: ${TEMPLATES_DIR}`);
+    return;
+  }
+
+  fs.mkdirSync(GLOBAL_COMMANDS_DIR, { recursive: true });
+
+  const files = fs
+    .readdirSync(TEMPLATES_DIR)
+    .filter(f => f.startsWith('forge-') && f.endsWith('.md'));
+
+  const installed: string[] = [];
+  const updated: string[] = [];
+
+  for (const file of files) {
+    const src = path.join(TEMPLATES_DIR, file);
+    const dest = path.join(GLOBAL_COMMANDS_DIR, file);
+    const isUpdate = fs.existsSync(dest);
+    fs.copyFileSync(src, dest);
+    (isUpdate ? updated : installed).push(file.replace('.md', ''));
+  }
+
+  console.log(`\n  Slash commands installed to: ${GLOBAL_COMMANDS_DIR}`);
+  if (installed.length) console.log(`  Installed: ${installed.map(f => `/${f}`).join('  ')}`);
+  if (updated.length)   console.log(`  Updated:   ${updated.map(f => `/${f}`).join('  ')}`);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main(): void {
@@ -109,6 +142,7 @@ function main(): void {
 
   registerDesktop(getClaudeDesktopConfigPath());
   registerClaudeCode(getClaudeCodeConfigPath());
+  installCommands();
 
   console.log(`\n  Binary: ${BINARY}`);
   console.log('\n  Restart Claude Desktop to apply the change.');

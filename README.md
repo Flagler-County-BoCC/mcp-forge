@@ -25,9 +25,13 @@ npm install
 npm run setup
 ```
 
-`npm run setup` builds the project and automatically registers it in Claude Desktop's config file. It detects your OS, finds the right config path, and merges the entry without touching any other servers you have configured.
+`npm run setup` builds the project and automatically:
 
-Restart Claude Desktop after running setup.
+1. Registers the MCP server in Claude Desktop
+2. Registers the MCP server in Claude Code (`~/.claude.json`)
+3. Installs `/forge-*` slash commands globally to `~/.claude/commands/`
+
+Restart Claude Desktop after running setup. Claude Code picks up changes automatically.
 
 ### Manual setup (Cursor or other MCP clients)
 
@@ -48,15 +52,9 @@ Build first if you haven't already: `npm run build`
 
 > `PROMPTS_DIR` defaults to `.claude/commands` inside the repo — no environment variable needed.
 
-## Using slash commands in Claude Code (recommended)
+## Slash commands in Claude Code
 
-Copy the template commands into any project you want to rewrite:
-
-```bash
-cp -r /path/to/mcp-forge/templates/.claude <your-project>/.claude
-```
-
-Then open that project in Claude Code and use:
+After `npm run setup`, the following commands are available globally in **any project** — no per-project setup required:
 
 | Command | Description |
 |---|---|

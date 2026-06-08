@@ -1,5 +1,6 @@
 /**
  * Removes mcp-forge from Claude Desktop and Claude Code CLI.
+ * Also removes /forge-* slash commands from ~/.claude/commands/.
  * Run with: npm run uninstall
  *
  * - Removes only the mcp-forge entry from each config
@@ -13,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER_KEY = 'mcp-forge';
+const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 
 // ─── Config path helpers ──────────────────────────────────────────────────────
 
@@ -79,11 +81,35 @@ function deregister(configPath: string, label: string): void {
   console.log(`  Config: ${configPath}`);
 }
 
+function removeCommands(): void {
+  if (!fs.existsSync(GLOBAL_COMMANDS_DIR)) {
+    console.log(`\n  Slash commands: directory not found — nothing to remove.`);
+    return;
+  }
+
+  const files = fs
+    .readdirSync(GLOBAL_COMMANDS_DIR)
+    .filter(f => f.startsWith('forge-') && f.endsWith('.md'));
+
+  if (files.length === 0) {
+    console.log(`\n  Slash commands: no /forge-* commands found — nothing to remove.`);
+    return;
+  }
+
+  for (const file of files) {
+    fs.unlinkSync(path.join(GLOBAL_COMMANDS_DIR, file));
+  }
+
+  console.log(`\n  Removed slash commands from: ${GLOBAL_COMMANDS_DIR}`);
+  console.log(`  Removed: ${files.map(f => `/${f.replace('.md', '')}`).join('  ')}`);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main(): void {
   deregister(getClaudeDesktopConfigPath(), 'Claude Desktop');
   deregister(getClaudeCodeConfigPath(),    'Claude Code   ');
+  removeCommands();
 
   console.log('\n  Remaining manual steps:');
   console.log('    1. Restart Claude Desktop (if it is running)');
