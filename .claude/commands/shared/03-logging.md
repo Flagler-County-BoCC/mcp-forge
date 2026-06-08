@@ -33,7 +33,7 @@ Every public function that needs logging accepts `logger?: LibraryLogger` and ca
 
 ---
 
-### All other project types (http-api, cli, worker, mcp-server)
+### http-api / cli / worker
 
 ### src/lib/logger.ts
 
@@ -75,10 +75,57 @@ export function createLogger(context: Record<string, unknown>): pino.Logger {
 }
 ```
 
-Rules:
-1. Production (`config.env === 'production'`): no `transport` — raw JSON to stdout.
-2. Test (`config.env === 'test'`): level is `silent` — no output during tests.
-3. Every module calls `createLogger({ module: 'moduleName' })` and uses the child — never imports `logger` directly in business logic.
+---
+
+### mcp-server
+
+**CRITICAL — stdout is reserved exclusively for JSON-RPC protocol messages.**
+Any log output on stdout will corrupt the MCP transport and cause JSON parse errors in the client.
+All pino output MUST go to stderr (file descriptor 2) in every environment.
+
+```typescript
+import pino from 'pino';
+import { config } from '../config/index.js';
+
+/**
+ * MCP stdio rule: stdout is for JSON-RPC only.
+ * ALL log output goes to stderr — development and production alike.
+ *
+ * Dev:  pino-pretty → stderr (destination: 2)
+ * Prod: pino JSON   → stderr (process.stderr)
+ */
+export const logger =
+  config.env !== 'production'
+    ? pino({
+        level: config.env === 'test' ? 'silent' : (process.env['LOG_LEVEL'] ?? config.log?.level ?? 'info'),
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            ignore: 'pid,hostname',
+            destination: 2, // stderr — never stdout
+          },
+        },
+        redact: {
+          paths: ['*.password', '*.token', '*.secret', '*.priv', '*.privateKey', '*.clientSecret'],
+          censor: '[REDACTED]',
+        },
+      })
+    : pino(
+        {
+          level: process.env['LOG_LEVEL'] ?? 'info',
+          redact: {
+            paths: ['*.password', '*.token', '*.secret', '*.priv', '*.privateKey', '*.clientSecret'],
+            censor: '[REDACTED]',
+          },
+        },
+        process.stderr, // explicit stderr destination for production
+      );
+
+export function createLogger(context: Record<string, unknown>): pino.Logger {
+  return logger.child(context);
+}
+```
 
 ### mcp-server: Additional Redaction
 
@@ -101,4 +148,5 @@ For **Express**: use `(req, res, next) => {...}` middleware.
 - Log level precedence (highest wins): `silent` (test) > `LOG_LEVEL` env var > `config.log.level` > `'info'` default.
 - Redact list is fixed — do not reduce it.
 - Child logger context key is always `module` (never `component`, `name`, or synonyms).
-- Production writes to stdout only (never a file path in pino config).
+- http-api / cli / worker: production writes to stdout (never a file path in pino config).
+- **mcp-server: ALL output goes to stderr in every environment. stdout is for JSON-RPC only. This is non-negotiable.**

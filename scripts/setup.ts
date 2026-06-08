@@ -91,11 +91,18 @@ function main(): void {
   mcpServers[SERVER_KEY] = { command: 'node', args: [BINARY] };
   config['mcpServers'] = mcpServers;
 
+  // Write a backup before modifying
+  const backupPath = configPath + '.bak';
+  if (fs.existsSync(configPath)) {
+    fs.copyFileSync(configPath, backupPath);
+  }
+
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
 
   const action = isUpdate ? 'Updated' : 'Registered';
   console.log(`\n  ${action} ${SERVER_KEY} in Claude Desktop config.`);
   console.log(`  Config: ${configPath}`);
+  console.log(`  Backup: ${backupPath}`);
   console.log(`  Binary: ${BINARY}`);
   console.log('\n  Restart Claude Desktop to apply the change.\n');
 }
