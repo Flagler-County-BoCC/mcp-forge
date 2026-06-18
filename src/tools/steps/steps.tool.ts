@@ -79,4 +79,17 @@ export function registerStepsTools(server: McpServer, stepsService: StepsService
       }
     },
   );
+
+  server.tool(
+    'get_create_prompt',
+    'Get the Create-mode prompt: generate a new mcp-server from an OpenAPI document or a BUILD_SPEC, emitting the same AUDIT_MANIFEST the rewrite steps consume.',
+    async (): Promise<CallToolResult> => {
+      try {
+        const content = await stepsService.getCreatePrompt();
+        return { content: [{ type: 'text' as const, text: content }] };
+      } catch (err) {
+        return handleToolError(err, 'get_create_prompt');
+      }
+    },
+  );
 }

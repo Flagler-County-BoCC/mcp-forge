@@ -14,6 +14,7 @@ Connect this server to any MCP client and call its tools to retrieve the exact p
 | `get_step`          | Get the full prompt for a specific step (0–14). Step 8 requires `projectType`.         |
 | `get_entrypoint`    | Get the Step 8 entrypoint prompt for a given project type.                             |
 | `get_master_prompt` | Get the single-pass master prompt for small projects (< 2 000 lines).                  |
+| `get_create_prompt` | Generate a new MCP server from an OpenAPI doc or BUILD_SPEC.                           |
 | `validate_manifest` | Validate an `AUDIT_MANIFEST` JSON string produced by Step 0.                           |
 
 ## Setup
@@ -90,6 +91,14 @@ After `npm run setup`, the following commands are available globally in **any pr
 **Single-pass rewrite (small projects, < 2 000 lines):**
 
 1. `get_master_prompt()` → paste your entire project source into context with the returned prompt
+
+**Creating a new MCP server from an API spec:**
+
+1. `get_create_prompt()` → returns the Create-mode prompt
+2. Supply an OpenAPI document (`openapi.json` / `openapi.yaml`) or fill in the `BUILD_SPEC` template from the prompt
+3. The prompt emits an `AUDIT_MANIFEST` with `projectType: "mcp-server"` and a populated `mcpTools` array
+4. `validate_manifest({ manifestJson: "..." })` → confirm it is valid
+5. Continue with steps 1–14 and `get_entrypoint({ projectType: "mcp-server" })` exactly as for a rewrite — all downstream steps are unchanged
 
 ## Environment variables
 

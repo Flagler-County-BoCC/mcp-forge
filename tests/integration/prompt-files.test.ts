@@ -27,4 +27,9 @@ describe('served prompt files', () => {
     const content = await stepsService.getMasterPrompt();
     expect(content.length).toBeGreaterThan(MIN_LENGTH);
   });
+
+  it('create-mode prompt returns substantial content', async () => {
+    const content = await stepsService.getCreatePrompt();
+    expect(content.length).toBeGreaterThan(MIN_LENGTH);
+  });
 });

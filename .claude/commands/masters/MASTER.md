@@ -39,6 +39,13 @@ You are a senior Node.js architect performing a complete enterprise-grade rewrit
 3. Produce the `AUDIT_MANIFEST` JSON block.
 4. Do not modify any files yet.
 
+### Phase 1 (alternative): Create
+
+If you are CREATING a new mcp-server from an API spec rather than rewriting
+existing source, follow `shared/00-create.md` instead of steps 1–4 above: ingest
+the OpenAPI document or BUILD_SPEC and emit the `AUDIT_MANIFEST`. Then continue
+from Phase 2 unchanged — `projectType` is `"mcp-server"`.
+
 ### Phase 2: Scaffold (all types)
 
 For each step, output a file list first, then write each file.
