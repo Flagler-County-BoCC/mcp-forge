@@ -23,6 +23,24 @@ const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 
 // ─── Config path helpers ──────────────────────────────────────────────────────
 
+// MSIX/Store builds keep their config under
+// AppData\Local\Packages\Claude_<hash>\LocalCache\Roaming\Claude\.
+// Returns the config path if exactly such a package dir exists, else undefined.
+function findPackagedDesktopConfig(): string | undefined {
+  const packagesDir = path.join(os.homedir(), 'AppData', 'Local', 'Packages');
+  if (!fs.existsSync(packagesDir)) return undefined;
+  const pkg = fs.readdirSync(packagesDir).find((d) => d.startsWith('Claude_'));
+  if (!pkg) return undefined;
+  return path.join(
+    packagesDir,
+    pkg,
+    'LocalCache',
+    'Roaming',
+    'Claude',
+    'claude_desktop_config.json',
+  );
+}
+
 function getClaudeDesktopConfigPath(): string {
   switch (process.platform) {
     case 'darwin':
@@ -33,12 +51,18 @@ function getClaudeDesktopConfigPath(): string {
         'Claude',
         'claude_desktop_config.json',
       );
-    case 'win32':
+    case 'win32': {
+      // The Microsoft Store (MSIX) build redirects %APPDATA% at runtime to a
+      // per-package LocalCache dir, so it ignores the plain Roaming\Claude path.
+      // Prefer the packaged location when a Claude_* package is present.
+      const packaged = findPackagedDesktopConfig();
+      if (packaged) return packaged;
       return path.join(
         process.env['APPDATA'] ?? path.join(os.homedir(), 'AppData', 'Roaming'),
         'Claude',
         'claude_desktop_config.json',
       );
+    }
     default:
       return path.join(os.homedir(), '.config', 'Claude', 'claude_desktop_config.json');
   }
