@@ -26,7 +26,13 @@ const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 function getClaudeDesktopConfigPath(): string {
   switch (process.platform) {
     case 'darwin':
-      return path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+      return path.join(
+        os.homedir(),
+        'Library',
+        'Application Support',
+        'Claude',
+        'claude_desktop_config.json',
+      );
     case 'win32':
       return path.join(
         process.env['APPDATA'] ?? path.join(os.homedir(), 'AppData', 'Roaming'),
@@ -112,7 +118,7 @@ function installCommands(): void {
 
   const files = fs
     .readdirSync(TEMPLATES_DIR)
-    .filter(f => f.startsWith('forge-') && f.endsWith('.md'));
+    .filter((f) => f.startsWith('forge-') && f.endsWith('.md'));
 
   const installed: string[] = [];
   const updated: string[] = [];
@@ -126,8 +132,8 @@ function installCommands(): void {
   }
 
   console.log(`\n  Slash commands installed to: ${GLOBAL_COMMANDS_DIR}`);
-  if (installed.length) console.log(`  Installed: ${installed.map(f => `/${f}`).join('  ')}`);
-  if (updated.length)   console.log(`  Updated:   ${updated.map(f => `/${f}`).join('  ')}`);
+  if (installed.length) console.log(`  Installed: ${installed.map((f) => `/${f}`).join('  ')}`);
+  if (updated.length) console.log(`  Updated:   ${updated.map((f) => `/${f}`).join('  ')}`);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

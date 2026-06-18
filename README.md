@@ -8,13 +8,13 @@ Connect this server to any MCP client and call its tools to retrieve the exact p
 
 ## Tools
 
-| Tool | Description |
-|---|---|
-| `list_steps` | List all 15 rewrite steps. Pass `projectType` to see which steps apply or are skipped. |
-| `get_step` | Get the full prompt for a specific step (0–14). Step 8 requires `projectType`. |
-| `get_entrypoint` | Get the Step 8 entrypoint prompt for a given project type. |
-| `get_master_prompt` | Get the single-pass master prompt for small projects (< 2 000 lines). |
-| `validate_manifest` | Validate an `AUDIT_MANIFEST` JSON string produced by Step 0. |
+| Tool                | Description                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `list_steps`        | List all 15 rewrite steps. Pass `projectType` to see which steps apply or are skipped. |
+| `get_step`          | Get the full prompt for a specific step (0–14). Step 8 requires `projectType`.         |
+| `get_entrypoint`    | Get the Step 8 entrypoint prompt for a given project type.                             |
+| `get_master_prompt` | Get the single-pass master prompt for small projects (< 2 000 lines).                  |
+| `validate_manifest` | Validate an `AUDIT_MANIFEST` JSON string produced by Step 0.                           |
 
 ## Setup
 
@@ -56,14 +56,15 @@ Build first if you haven't already: `npm run build`
 
 After `npm run setup`, the following commands are available globally in **any project** — no per-project setup required:
 
-| Command | Description |
-|---|---|
-| `/forge-audit` | Audit the codebase and emit an `AUDIT_MANIFEST`. Always start here. |
-| `/forge-plan [projectType]` | List which steps apply to this project type. Run after audit. |
+| Command                         | Description                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `/forge-audit`                  | Audit the codebase and emit an `AUDIT_MANIFEST`. Always start here.           |
+| `/forge-plan [projectType]`     | List which steps apply to this project type. Run after audit.                 |
 | `/forge-step <n> [projectType]` | Apply a specific step. Example: `/forge-step 3` or `/forge-step 8 mcp-server` |
-| `/forge-rewrite` | Single-pass full rewrite for small projects (< 2 000 lines). |
+| `/forge-rewrite`                | Single-pass full rewrite for small projects (< 2 000 lines).                  |
 
 **Typical workflow:**
+
 ```
 /forge-audit
 /forge-plan
@@ -92,11 +93,11 @@ After `npm run setup`, the following commands are available globally in **any pr
 
 ## Environment variables
 
-| Variable | Default | Description |
-|---|---|---|
+| Variable      | Default                                     | Description                             |
+| ------------- | ------------------------------------------- | --------------------------------------- |
 | `PROMPTS_DIR` | `.claude/commands` (relative to the binary) | Override the prompts directory location |
-| `NODE_ENV` | `development` | Environment |
-| `LOG_LEVEL` | `info` | pino log level |
+| `NODE_ENV`    | `development`                               | Environment                             |
+| `LOG_LEVEL`   | `info`                                      | pino log level                          |
 
 ## Development
 

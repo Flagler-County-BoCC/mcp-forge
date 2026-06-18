@@ -17,10 +17,7 @@ async function main(): Promise<void> {
   const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  logger.info(
-    { env: config.env, promptsDir: config.prompts.dir },
-    'mcp-forge started',
-  );
+  logger.info({ env: config.env, promptsDir: config.prompts.dir }, 'mcp-forge started');
 }
 
 void main().catch((err: unknown) => {

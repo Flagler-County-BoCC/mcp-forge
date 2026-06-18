@@ -46,10 +46,13 @@ Project type is auto-detected in Step 0 and all subsequent steps branch accordin
 ## How to Use
 
 ### Option A — Single-pass (small projects, < 2 000 lines)
+
 Use [`masters/MASTER.md`](commands/masters/MASTER.md). Feed your entire source code in context. The AI runs all 6 phases and emits every file.
 
 ### Option B — Incremental (large projects, recommended)
+
 Run each step in order:
+
 1. `shared/00-audit.md` → get `AUDIT_MANIFEST`
 2. `shared/01-structure.md` through `shared/07-services.md` → scaffold
 3. `entrypoints/<projectType>.md` → entrypoint layer (Step 8)
@@ -62,7 +65,7 @@ Each step produces a reviewable diff before applying the next.
 
 ## Determinism Contract
 
-1. All decisions that *could* vary are resolved by explicit rules (no "choose the best approach").
+1. All decisions that _could_ vary are resolved by explicit rules (no "choose the best approach").
 2. Tool/library choices are pinned to exact package names and minimum semver ranges.
 3. File paths, naming conventions, and export shapes are fully specified.
 4. `projectType` is immutable once set in Step 0 — never changes mid-rewrite.
@@ -72,23 +75,23 @@ Each step produces a reviewable diff before applying the next.
 
 ## Core Standards
 
-| Concern | Choice |
-|---|---|
-| Runtime | Node.js ≥ 22 LTS |
-| Language | TypeScript 5.x (strict) |
-| Package manager | npm with lockfile |
-| Linter | ESLint flat-config + `@typescript-eslint` |
-| Formatter | Prettier |
-| Logging | pino (JSON, structured) |
-| Validation | zod |
-| HTTP framework | Fastify v4 or Express v5 (detected or defaulted) |
-| CLI framework | Commander v12 (detected or defaulted) |
-| Queue | BullMQ v5 (detected or defaulted) |
-| MCP transport | `@modelcontextprotocol/sdk` stdio (always for mcp-server) |
-| ORM/query | Prisma or Knex (detected or defaulted) |
-| Testing | Vitest + Supertest (http-api) / in-process McpServer (mcp-server) / execa (cli) |
-| CI | GitHub Actions |
-| Containers | Docker multi-stage (http-api, worker, mcp-server optional) |
+| Concern         | Choice                                                                          |
+| --------------- | ------------------------------------------------------------------------------- |
+| Runtime         | Node.js ≥ 22 LTS                                                                |
+| Language        | TypeScript 5.x (strict)                                                         |
+| Package manager | npm with lockfile                                                               |
+| Linter          | ESLint flat-config + `@typescript-eslint`                                       |
+| Formatter       | Prettier                                                                        |
+| Logging         | pino (JSON, structured)                                                         |
+| Validation      | zod                                                                             |
+| HTTP framework  | Fastify v4 or Express v5 (detected or defaulted)                                |
+| CLI framework   | Commander v12 (detected or defaulted)                                           |
+| Queue           | BullMQ v5 (detected or defaulted)                                               |
+| MCP transport   | `@modelcontextprotocol/sdk` stdio (always for mcp-server)                       |
+| ORM/query       | Prisma or Knex (detected or defaulted)                                          |
+| Testing         | Vitest + Supertest (http-api) / in-process McpServer (mcp-server) / execa (cli) |
+| CI              | GitHub Actions                                                                  |
+| Containers      | Docker multi-stage (http-api, worker, mcp-server optional)                      |
 
 ---
 

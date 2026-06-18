@@ -21,7 +21,13 @@ const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
 function getClaudeDesktopConfigPath(): string {
   switch (process.platform) {
     case 'darwin':
-      return path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+      return path.join(
+        os.homedir(),
+        'Library',
+        'Application Support',
+        'Claude',
+        'claude_desktop_config.json',
+      );
     case 'win32':
       return path.join(
         process.env['APPDATA'] ?? path.join(os.homedir(), 'AppData', 'Roaming'),
@@ -90,7 +96,7 @@ function removeCommands(): void {
 
   const files = fs
     .readdirSync(GLOBAL_COMMANDS_DIR)
-    .filter(f => f.startsWith('forge-') && f.endsWith('.md'));
+    .filter((f) => f.startsWith('forge-') && f.endsWith('.md'));
 
   if (files.length === 0) {
     console.log(`\n  Slash commands: no /forge-* commands found — nothing to remove.`);
@@ -102,14 +108,14 @@ function removeCommands(): void {
   }
 
   console.log(`\n  Removed slash commands from: ${GLOBAL_COMMANDS_DIR}`);
-  console.log(`  Removed: ${files.map(f => `/${f.replace('.md', '')}`).join('  ')}`);
+  console.log(`  Removed: ${files.map((f) => `/${f.replace('.md', '')}`).join('  ')}`);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main(): void {
   deregister(getClaudeDesktopConfigPath(), 'Claude Desktop');
-  deregister(getClaudeCodeConfigPath(),    'Claude Code   ');
+  deregister(getClaudeCodeConfigPath(), 'Claude Code   ');
   removeCommands();
 
   console.log('\n  Remaining manual steps:');

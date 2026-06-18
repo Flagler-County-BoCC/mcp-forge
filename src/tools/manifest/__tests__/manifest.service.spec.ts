@@ -16,7 +16,14 @@ const VALID_MANIFEST = {
   exportedSymbols: [],
   cliCommands: [],
   publicApiRoutes: [],
-  mcpTools: [{ name: 'my-tool', module: 'core', description: 'Does a thing', file: 'src/tools/core/core.tool.ts' }],
+  mcpTools: [
+    {
+      name: 'my-tool',
+      module: 'core',
+      description: 'Does a thing',
+      file: 'src/tools/core/core.tool.ts',
+    },
+  ],
   mcpTransport: 'stdio',
   environmentVariables: [],
   externalDependencies: [],

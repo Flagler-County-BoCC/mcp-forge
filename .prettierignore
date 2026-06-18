@@ -1,0 +1,9 @@
+# Build & deps (also covered by .gitignore, listed for clarity)
+dist/
+coverage/
+node_modules/
+
+# Prompt library — served verbatim to MCP clients; must stay byte-stable
+# per the Determinism Contract in .claude/CLAUDE.md. Do not let Prettier rewrap.
+.claude/commands/
+templates/.claude/commands/

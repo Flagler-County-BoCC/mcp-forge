@@ -18,10 +18,7 @@ let env: z.infer<typeof envSchema>;
 try {
   env = envSchema.parse(process.env);
 } catch (err) {
-  console.error(
-    'Environment validation failed:',
-    err instanceof Error ? err.message : String(err),
-  );
+  console.error('Environment validation failed:', err instanceof Error ? err.message : String(err));
   process.exit(1);
 }
 
