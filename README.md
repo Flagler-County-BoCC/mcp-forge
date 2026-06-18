@@ -1,8 +1,8 @@
 # mcp-forge
 
-An MCP stdio server that serves the **mcp-forge** prompt library — a deterministic, enterprise-grade system for rewriting any Node.js project to production-quality TypeScript.
+An MCP stdio server that serves the **mcp-forge** prompt library — a deterministic, enterprise-grade system for creating new, or rewriting existing, Node.js projects (including MCP servers) to production-quality TypeScript.
 
-Connect this server to any MCP client and call its tools to retrieve the exact prompts needed to rewrite a project step by step. The same source code always produces the same output — deterministic by design.
+Connect this server to any MCP client and call its tools to retrieve the exact prompts needed to rewrite a project step by step. The same source code always produces the same output — deterministic by design. Rewrite an existing project step by step, or generate a brand-new MCP server from an API spec with Create mode.
 
 **Supported project types:** `http-api` · `library` · `cli` · `worker` · `mcp-server`
 
@@ -57,12 +57,13 @@ Build first if you haven't already: `npm run build`
 
 After `npm run setup`, the following commands are available globally in **any project** — no per-project setup required:
 
-| Command                         | Description                                                                   |
-| ------------------------------- | ----------------------------------------------------------------------------- |
-| `/forge-audit`                  | Audit the codebase and emit an `AUDIT_MANIFEST`. Always start here.           |
-| `/forge-plan [projectType]`     | List which steps apply to this project type. Run after audit.                 |
-| `/forge-step <n> [projectType]` | Apply a specific step. Example: `/forge-step 3` or `/forge-step 8 mcp-server` |
-| `/forge-rewrite`                | Single-pass full rewrite for small projects (< 2 000 lines).                  |
+| Command                         | Description                                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `/forge-audit`                  | Audit the codebase and emit an `AUDIT_MANIFEST`. Always start here.                           |
+| `/forge-create`                 | Create a brand-new MCP server from an OpenAPI doc or BUILD_SPEC (no existing project needed). |
+| `/forge-plan [projectType]`     | List which steps apply to this project type. Run after audit.                                 |
+| `/forge-step <n> [projectType]` | Apply a specific step. Example: `/forge-step 3` or `/forge-step 8 mcp-server`                 |
+| `/forge-rewrite`                | Single-pass full rewrite for small projects (< 2 000 lines).                                  |
 
 **Typical workflow:**
 
@@ -76,6 +77,15 @@ After `npm run setup`, the following commands are available globally in **any pr
 /forge-step 9
 ... through /forge-step 14
 ```
+
+**Or — create a new MCP server from scratch:**
+
+```
+/forge-create
+```
+
+Supply an OpenAPI document or fill in the BUILD_SPEC when prompted; mcp-forge
+generates the whole server (steps 1–14 + the mcp-server entrypoint).
 
 ## Using the MCP tools directly
 
