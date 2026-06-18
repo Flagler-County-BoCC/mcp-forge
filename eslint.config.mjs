@@ -25,6 +25,7 @@ export default [
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/require-await': 'error',
       'no-console': ['warn', { allow: ['error'] }],
+      'no-undef': 'off',
     },
   },
   prettierConfig,

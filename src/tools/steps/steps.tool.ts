@@ -14,7 +14,7 @@ export function registerStepsTools(server: McpServer, stepsService: StepsService
     'list_steps',
     'List all rewrite steps (0–14) in order. Optionally filter by projectType to see which steps apply or are skipped.',
     ListStepsSchema.shape,
-    async ({ projectType }): Promise<CallToolResult> => {
+    ({ projectType }): CallToolResult => {
       try {
         const parsed = projectType ? ProjectTypeSchema.parse(projectType) : undefined;
         const steps = stepsService.listSteps(parsed);

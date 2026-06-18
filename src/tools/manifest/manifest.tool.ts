@@ -9,7 +9,7 @@ export function registerManifestTools(server: McpServer, manifestService: Manife
     'validate_manifest',
     'Validate an AUDIT_MANIFEST JSON string against the expected schema (produced by Step 0). Returns a list of validation errors, or confirms the manifest is valid.',
     ValidateManifestInputSchema.shape,
-    async ({ manifestJson }): Promise<CallToolResult> => {
+    ({ manifestJson }): CallToolResult => {
       try {
         const result = manifestService.validate(manifestJson);
         const text = result.valid
