@@ -1,12 +1,5 @@
 import { z } from 'zod';
-
-export const ProjectTypeSchema = z.enum([
-  'http-api',
-  'library',
-  'cli',
-  'worker',
-  'mcp-server',
-]);
+import { ProjectTypeSchema } from '../steps/steps.schema.js';
 
 export const AuditManifestSchema = z.object({
   schemaVersion: z.string(),
