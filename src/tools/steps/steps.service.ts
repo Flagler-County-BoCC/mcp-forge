@@ -161,4 +161,8 @@ export class StepsService {
   async getMasterPrompt(): Promise<string> {
     return this.load('masters/MASTER.md');
   }
+
+  async getCreatePrompt(): Promise<string> {
+    return this.load('shared/00-create.md');
+  }
 }

@@ -45,6 +45,7 @@ describe('MCP server integration', () => {
     expect(names).toContain('get_entrypoint');
     expect(names).toContain('get_master_prompt');
     expect(names).toContain('validate_manifest');
+    expect(names).toContain('get_create_prompt');
   });
 
   it('list_steps returns content for all 15 steps', async () => {
@@ -80,6 +81,12 @@ describe('MCP server integration', () => {
 
   it('get_master_prompt returns the master prompt', async () => {
     const result = await callTool(client, 'get_master_prompt', {});
+    expect(result.isError).toBeFalsy();
+    expect((result.content[0]?.text ?? '').length).toBeGreaterThan(100);
+  });
+
+  it('get_create_prompt returns the create prompt', async () => {
+    const result = await callTool(client, 'get_create_prompt', {});
     expect(result.isError).toBeFalsy();
     expect((result.content[0]?.text ?? '').length).toBeGreaterThan(100);
   });

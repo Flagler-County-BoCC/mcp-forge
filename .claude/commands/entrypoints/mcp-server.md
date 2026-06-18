@@ -98,6 +98,7 @@ One file per logical module group (e.g., `service`, `time`, `agreements`). Each 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { validate } from '../../lib/validate.js';
+import { selectFields } from '../../lib/select-fields.js';
 import { handleToolError } from '../../lib/tool-error-handler.js';
 import {
   List<Module>Schema,
@@ -121,7 +122,8 @@ export function register<Module>Tools(server: McpServer): void {
       log.debug({ input }, '<prefix>-list-<module> called');
       try {
         const result = await <module>Service.list<Module>(input);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        const projected = selectFields(result, input.fields);
+        return { content: [{ type: 'text', text: JSON.stringify(projected, null, 2) }] };
       } catch (err) {
         return handleToolError(err, '<prefix>-list-<module>');
       }
@@ -138,7 +140,8 @@ export function register<Module>Tools(server: McpServer): void {
       log.debug({ input }, '<prefix>-get-<module> called');
       try {
         const result = await <module>Service.get<Module>ById(input.id);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+        const projected = selectFields(result, input.fields);
+        return { content: [{ type: 'text', text: JSON.stringify(projected, null, 2) }] };
       } catch (err) {
         return handleToolError(err, '<prefix>-get-<module>');
       }
@@ -162,7 +165,8 @@ Derive tool names and prefixes directly from `AUDIT_MANIFEST.mcpTools[*].name`. 
 
 1. Every tool handler wraps its service call in `try/catch` — never propagates unhandled errors.
 2. On error: call `handleToolError(err, toolName)` and return the result (never re-throw).
-3. On success: return `{ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }`.
+3. On success: project the result with `selectFields(result, input.fields)` and
+   return `{ content: [{ type: 'text', text: JSON.stringify(projected, null, 2) }] }`.
 4. Log the tool call at `debug` level with the validated input before calling the service.
 5. Never call `process.exit()` inside a tool handler.
 6. For write operations (POST/PATCH equivalent): check `config.mcp.requireConfirm` and `config.mcp.enableDryRun`; if confirm is required and not provided, return a `isError: false` message asking the caller to re-invoke with `confirm: true`.
@@ -216,6 +220,39 @@ export function handleToolError(err: unknown, toolName: string): CallToolResult 
     content: [{ type: 'text', text: 'An unexpected error occurred. Check server logs.' }],
     isError: true,
   };
+}
+```
+
+---
+
+## src/lib/select-fields.ts — Response Projection
+
+```typescript
+/**
+ * Client-side field projection. Returns only the requested top-level fields.
+ * - Objects: keep only keys in `fields`.
+ * - Arrays of objects: project each element.
+ * - Anything else, or empty/undefined `fields`: return unchanged.
+ * ponytail: top-level keys only; deep dot-paths are a future extension if needed.
+ */
+export function selectFields<T>(data: T, fields?: string[]): unknown {
+  if (!fields || fields.length === 0) return data;
+  const pick = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const out: Record<string, unknown> = {};
+    for (const f of fields) {
+      if (f in obj) out[f] = obj[f];
+    }
+    return out;
+  };
+  if (Array.isArray(data)) {
+    return data.map((item) =>
+      item && typeof item === 'object' ? pick(item as Record<string, unknown>) : item,
+    );
+  }
+  if (data && typeof data === 'object') {
+    return pick(data as Record<string, unknown>);
+  }
+  return data;
 }
 ```
 
@@ -361,11 +398,12 @@ function readJson(filePath: string): Record<string, unknown> {
 }
 
 function writeJson(filePath: string, data: Record<string, unknown>): void {
-  const backupPath = filePath + '.bak';
-  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, backupPath);
+  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, filePath + '.bak');
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   // NEVER use PowerShell ConvertFrom-Json | ConvertTo-Json — it silently drops unknown fields.
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  fs.renameSync(tmpPath, filePath); // atomic replace — live config is never partially written
 }
 
 function registerDesktop(configPath: string): void {
@@ -476,9 +514,10 @@ function readJson(filePath: string): Record<string, unknown> {
 }
 
 function writeJson(filePath: string, data: Record<string, unknown>): void {
-  const backupPath = filePath + '.bak';
-  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, backupPath);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, filePath + '.bak');
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  fs.renameSync(tmpPath, filePath);
 }
 
 function deregister(configPath: string, label: string): void {
@@ -520,7 +559,9 @@ main();
 
 **Key implementation rules for both scripts:**
 - Use `node:fs` / `JSON.parse` / `JSON.stringify` to read and write config files — never PowerShell `ConvertFrom-Json | ConvertTo-Json`, which silently drops unrecognized fields and corrupts configs.
-- Always write a `.bak` file before modifying any config.
+- Write config atomically: serialize to `<file>.tmp`, then `fs.renameSync` it over
+  the target (atomic on a single filesystem) so a crash mid-write can never leave
+  a truncated config. Always copy the existing file to `<file>.bak` first.
 - Claude Code MCP config is `~/.claude.json` (with `type: "stdio"` on each entry), NOT `~/.claude/settings.json` (that file is for editor preferences).
 - Claude Desktop config is `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) | `~/.config/Claude/claude_desktop_config.json` (Linux).
 - Slash commands go in `~/.claude/commands/` for global availability in every project.
@@ -529,32 +570,63 @@ main();
 
 ## templates/.claude/commands/ — Slash Command Templates
 
-Create one `.md` file per command in `templates/.claude/commands/`. `npm run setup` copies these to `~/.claude/commands/` so they're available globally in Claude Code without any per-project setup.
+Generate slash commands **about this server's own tools** — never mcp-forge's
+meta-commands. `npm run setup` copies these to `~/.claude/commands/` for global
+use. There are two tiers.
 
-**Naming convention:** `<short-prefix>-<verb>.md` — e.g., `forge-audit.md`, `forge-plan.md`.
+### Tier 1 — Raw-API commands (always generated, one per tool)
 
-Minimum set for an mcp-server project:
+For EVERY tool in `AUDIT_MANIFEST.mcpTools`, generate exactly one command file.
+This is mechanical and deterministic — one tool, one command, no judgment.
 
-```
-templates/
-  .claude/
-    commands/
-      <prefix>-audit.md     ← Step 0: audit codebase, emit AUDIT_MANIFEST
-      <prefix>-plan.md      ← list applicable steps for this project type
-      <prefix>-step.md      ← apply a numbered step (uses $ARGUMENTS)
-      <prefix>-rewrite.md   ← single-pass rewrite for small projects
-```
-
-Each file is a plain-English instruction block that calls MCP tools. Example (`<prefix>-audit.md`):
+- File name: `<tool-name>.md` (the tool name verbatim, e.g. `svc-get-ticket.md`).
+- Body (fill `<tool-name>`, `<projectName>`, and the tool's parameters from its
+  schema):
 
 ```markdown
-Audit this codebase using <projectName>.
+Call the `<tool-name>` tool from <projectName>.
 
-1. Call the `<tool_name>` tool from <projectName> to get the Step 0 audit prompt
-2. Apply the audit prompt: read every source file, analyze structure and dependencies
-3. Emit a complete AUDIT_MANIFEST JSON block
-4. Summarize findings: projectType detected, key dependencies, total line count, gaps found
+Arguments (from the tool's input schema):
+- <param>: <type> — <description> (<required|optional, default>)
+- fields: string[] — optional; return only these fields.
+
+Pass the user's `$ARGUMENTS` as the tool arguments. Return the tool's result
+verbatim. Do not add interpretation.
 ```
+
+Generate one such file per tool, sorted by tool name. Do not group or omit.
+
+### Tier 2 — Business-logic commands (only from an explicit list)
+
+Generate a business-logic command ONLY for each entry the user provides in a
+`BUSINESS_COMMANDS` list (in the spec/manifest or supplied directly). Never infer
+business commands — inference is non-deterministic. Each entry has: a command
+name, a one-line goal, and the ordered tools it composes.
+
+- File name: `<command-name>.md`.
+- Body:
+
+```markdown
+<goal sentence>.
+
+Steps:
+1. Call `<tool-a>` with <args derived from $ARGUMENTS>.
+2. Use its result to call `<tool-b>` ...
+3. Summarize for the user.
+
+This command composes existing <projectName> tools; it adds no new capability.
+```
+
+If the user supplies no `BUSINESS_COMMANDS` list, generate ZERO Tier-2 files (the
+raw tier alone is a complete, valid command set).
+
+### Naming & determinism
+
+- Tier-1 file names equal tool names exactly (`AUDIT_MANIFEST.mcpTools[*].name`).
+- Tier-1 files are generated for ALL tools, sorted by name — no selection.
+- Tier-2 files come only from the explicit list, in the order listed.
+- Never generate `audit`/`plan`/`step`/`rewrite` commands — those are mcp-forge's
+  own meta-commands and are meaningless in a generated server.
 
 ---
 
@@ -569,3 +641,13 @@ Audit this codebase using <projectName>.
 - `src/lib/container.ts` exports only service instances — never the raw HTTP client.
 - `scripts/setup.ts` and `scripts/uninstall.ts` must be present — they are not optional.
 - Config file manipulation must use `node:fs` + `JSON.parse`/`JSON.stringify` — never shell JSON tools.
+- Every tool input schema includes optional `fields: string[]`; every handler
+  applies `selectFields(result, input.fields)` before serializing.
+- `src/lib/select-fields.ts` is present in every generated mcp-server.
+- Generate one Tier-1 command per tool in `AUDIT_MANIFEST.mcpTools` (file name =
+  tool name), sorted by name. Generate Tier-2 commands only from an explicit
+  `BUSINESS_COMMANDS` list. Never generate mcp-forge meta-commands.
+- A tool's `fields` param `.describe()` enumerates that tool's
+  `AUDIT_MANIFEST.mcpTools[*].responseFields` when non-empty; otherwise it uses the
+  generic "omit for all fields" text. The `selectFields` runtime behavior is
+  unchanged either way.

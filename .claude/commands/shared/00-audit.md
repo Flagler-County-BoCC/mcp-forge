@@ -53,7 +53,7 @@ Evaluate rules top-to-bottom; use the **first** match.
     { "method": "<GET|POST|PUT|PATCH|DELETE>", "path": "<express-style path>", "file": "<relative>" }
   ],
   "mcpTools": [
-    { "name": "<tool name>", "module": "<logical group>", "description": "<one line>", "file": "<relative>" }
+    { "name": "<tool name>", "module": "<logical group>", "description": "<one line>", "file": "<relative>", "responseFields": [] }
   ],
   "mcpTransport": "<stdio | sse | http | null>",
 
@@ -87,6 +87,8 @@ Evaluate rules top-to-bottom; use the **first** match.
 - `mcpTransport` — populate only for `mcp-server` (`"stdio"` is the default); set to `null` otherwise.
 - `isPublishedPackage` — `true` if `package.json` has `"private": false` or no `"private"` field and `"version"` is not `"0.0.0"`.
 - `detectedFramework` for `mcp-server`: always `"@modelcontextprotocol/sdk"` if detected.
+- `responseFields` — populate only in Create mode (from the API spec). In rewrite
+  mode set to `[]` (response field names cannot be reliably inferred from source).
 
 ## Determinism Rules
 - Always use exact relative paths (forward-slash separated, no leading `./`).
