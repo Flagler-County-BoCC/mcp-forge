@@ -69,6 +69,7 @@ export const ListTicketsSchema = z.object({
   status:      z.string().optional(),
   page:        z.coerce.number().int().min(1).default(1),
   pageSize:    z.coerce.number().int().min(1).max(100).default(50),
+  fields:      z.array(z.string()).optional(),
 });
 
 export type ListTicketsInput = z.infer<typeof ListTicketsSchema>;
@@ -79,6 +80,10 @@ Rules for MCP tool schemas:
 2. All numeric fields from tool inputs use `z.coerce.number()` — MCP clients may pass strings.
 3. All boolean fields use `z.coerce.boolean()`.
 4. Optional fields get sensible defaults (`.default(...)`) rather than being left truly optional, to improve the tool's usability by AI callers.
+5. Every tool input schema must include an optional field-selection parameter:
+   `fields: z.array(z.string()).optional().describe('Return only these top-level fields; omit for all fields.')`.
+   This lets AI callers request just the fields they need (e.g. only `Name` from a
+   computer record), keeping irrelevant data out of the model's context.
 
 ## Determinism Rules
 - Schema files may not import from service or repository files — schemas are leaf-level modules.
