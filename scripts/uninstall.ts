@@ -52,9 +52,10 @@ function readJson(filePath: string): Record<string, unknown> {
 }
 
 function writeJson(filePath: string, data: Record<string, unknown>): void {
-  const backupPath = filePath + '.bak';
-  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, backupPath);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, filePath + '.bak');
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  fs.renameSync(tmpPath, filePath);
 }
 
 // ─── Removal ─────────────────────────────────────────────────────────────────

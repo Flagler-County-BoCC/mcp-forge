@@ -58,10 +58,11 @@ function readJson(filePath: string): Record<string, unknown> {
 }
 
 function writeJson(filePath: string, data: Record<string, unknown>): void {
-  const backupPath = filePath + '.bak';
-  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, backupPath);
+  if (fs.existsSync(filePath)) fs.copyFileSync(filePath, filePath + '.bak');
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  const tmpPath = filePath + '.tmp';
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  fs.renameSync(tmpPath, filePath); // atomic replace — live file is never partially written
 }
 
 // ─── Registration ─────────────────────────────────────────────────────────────
