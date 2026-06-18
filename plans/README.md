@@ -20,6 +20,7 @@ done.
 | 009  | Command generation: target the MCP's tools (raw + business tiers) | P2 | M | — | DONE (executed & reviewed 2026-06-18) |
 | 010  | Harden generated cross-OS install scripts (atomic writes)  | P2 | S | — | DONE (executed & reviewed 2026-06-18) |
 | 011  | Thread per-tool response field names into the `fields` describe | P3 | M | 007, 008 | DONE (executed & reviewed 2026-06-18) |
+| 012  | Add the missing `/forge-create` slash command for Create mode | P2 | S | 007 | DONE (executed & reviewed 2026-06-18; branch advisor/012-forge-create-command @ 9a10365, on a3e502d) |
 
 ## Execution record (007–010, 2026-06-18)
 

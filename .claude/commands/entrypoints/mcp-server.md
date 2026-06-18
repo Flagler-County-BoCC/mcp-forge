@@ -357,6 +357,7 @@ Every `mcp-server` project must ship a `scripts/setup.ts` that registers the ser
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -364,6 +365,7 @@ const BINARY = path.join(ROOT, 'dist', 'stdio.js');
 const SERVER_KEY = '<projectName>';
 const TEMPLATES_DIR = path.join(ROOT, 'templates', '.claude', 'commands');
 const GLOBAL_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands');
+const ENV_EXAMPLE = path.join(ROOT, '.env.example');
 
 function getClaudeDesktopConfigPath(): string {
   switch (process.platform) {
@@ -406,28 +408,77 @@ function writeJson(filePath: string, data: Record<string, unknown>): void {
   fs.renameSync(tmpPath, filePath); // atomic replace — live config is never partially written
 }
 
-function registerDesktop(configPath: string): void {
-  const configDir = path.dirname(configPath);
-  if (!fs.existsSync(configDir)) {
-    console.warn(`\n  Claude Desktop: config directory not found — may not be installed.`);
-    return;
+/**
+ * Parse .env.example into { KEY: defaultValue }. Keys whose example value is
+ * `CHANGE_ME` are secrets that require a real value; everything else already
+ * has a working default baked into the config schema and is left alone.
+ */
+function parseRequiredKeys(): string[] {
+  if (!fs.existsSync(ENV_EXAMPLE)) return [];
+  return fs.readFileSync(ENV_EXAMPLE, 'utf-8')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#') && l.includes('='))
+    .filter(l => l.slice(l.indexOf('=') + 1).trim() === 'CHANGE_ME')
+    .map(l => l.slice(0, l.indexOf('=')).trim());
+}
+
+/**
+ * Prompt for each required secret, pre-filling the existing value (from a prior
+ * run, the process env, or .env) as the default so re-running setup is a series
+ * of Enter presses. Returns the merged env object to embed in the client config.
+ */
+async function collectEnv(existing: Record<string, string>): Promise<Record<string, string>> {
+  const keys = parseRequiredKeys();
+  const env: Record<string, string> = { ...existing };
+  if (!keys.length) return env;
+  if (!process.stdin.isTTY) {
+    console.warn('\n  Non-interactive shell — skipping key prompts; keeping existing values.');
+    return env;
   }
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  console.log('\n  Enter required values (press Enter to keep the current value):');
+  for (const key of keys) {
+    const current = env[key] ?? process.env[key] ?? '';
+    const shown = current ? ` [${current.length > 8 ? current.slice(0, 4) + '…' : current}]` : '';
+    const answer = (await rl.question(`    ${key}${shown}: `)).trim();
+    const value = answer || current;
+    if (value) env[key] = value;
+  }
+  rl.close();
+  return env;
+}
+
+function existingEnvFor(configPath: string): Record<string, string> {
+  const servers = readJson(configPath)['mcpServers'] as Record<string, { env?: Record<string, string> }> | undefined;
+  return servers?.[SERVER_KEY]?.env ?? {};
+}
+
+function registerDesktop(configPath: string, env: Record<string, string>): void {
+  // Do NOT skip when the config dir is missing: on Windows %APPDATA%\Claude is
+  // only created on Claude Desktop's first launch, so guarding on its existence
+  // silently skips registration. writeJson mkdirs the parent — writing a fresh
+  // config is safe; Desktop reads it on next launch.
   const config = readJson(configPath);
   const mcpServers = (config['mcpServers'] as Record<string, unknown> | undefined) ?? {};
   const isUpdate = SERVER_KEY in mcpServers;
-  mcpServers[SERVER_KEY] = { command: 'node', args: [BINARY] };
+  const entry: Record<string, unknown> = { command: 'node', args: [BINARY] };
+  if (Object.keys(env).length) entry['env'] = env;
+  mcpServers[SERVER_KEY] = entry;
   config['mcpServers'] = mcpServers;
   writeJson(configPath, config);
   console.log(`\n  ${isUpdate ? 'Updated' : 'Registered'} in Claude Desktop`);
   console.log(`  Config: ${configPath}`);
 }
 
-function registerClaudeCode(configPath: string): void {
+function registerClaudeCode(configPath: string, env: Record<string, string>): void {
   const config = readJson(configPath);
   const mcpServers = (config['mcpServers'] as Record<string, unknown> | undefined) ?? {};
   const isUpdate = SERVER_KEY in mcpServers;
   // Claude Code requires type: "stdio" for local process servers
-  mcpServers[SERVER_KEY] = { type: 'stdio', command: 'node', args: [BINARY] };
+  const entry: Record<string, unknown> = { type: 'stdio', command: 'node', args: [BINARY] };
+  if (Object.keys(env).length) entry['env'] = env;
+  mcpServers[SERVER_KEY] = entry;
   config['mcpServers'] = mcpServers;
   writeJson(configPath, config);
   console.log(`\n  ${isUpdate ? 'Updated' : 'Registered'} in Claude Code`);
@@ -451,13 +502,18 @@ function installCommands(): void {
   if (updated.length)   console.log(`  Updated:   ${updated.map(f => `/${f}`).join('  ')}`);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   if (!fs.existsSync(BINARY)) {
     console.error('\n  Build not found. Run `npm run build` first.\n');
     process.exit(1);
   }
-  registerDesktop(getClaudeDesktopConfigPath());
-  registerClaudeCode(getClaudeCodeConfigPath());
+  const desktopPath = getClaudeDesktopConfigPath();
+  const codePath = getClaudeCodeConfigPath();
+  // Seed from whichever client already has values so keys carry across both.
+  const existing = { ...existingEnvFor(codePath), ...existingEnvFor(desktopPath) };
+  const env = await collectEnv(existing);
+  registerDesktop(desktopPath, env);
+  registerClaudeCode(codePath, env);
   installCommands();
   console.log(`\n  Binary: ${BINARY}`);
   console.log('\n  Restart Claude Desktop to apply the change.');
@@ -564,7 +620,9 @@ main();
   a truncated config. Always copy the existing file to `<file>.bak` first.
 - Claude Code MCP config is `~/.claude.json` (with `type: "stdio"` on each entry), NOT `~/.claude/settings.json` (that file is for editor preferences).
 - Claude Desktop config is `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) | `%APPDATA%\Claude\claude_desktop_config.json` (Windows) | `~/.config/Claude/claude_desktop_config.json` (Linux).
+- Never skip Desktop registration just because its config directory is missing. On Windows `%APPDATA%\Claude` is created on Desktop's first launch, so a directory-existence guard skips registration on a fresh machine. Always write (`writeJson` mkdirs the parent); Desktop loads the config on next launch.
 - Slash commands go in `~/.claude/commands/` for global availability in every project.
+- `setup.ts` prompts for required secrets — every key whose `.env.example` value is `CHANGE_ME` — and writes them into the `env` block of each client's `mcpServers` entry (that is how Desktop/Code pass env to the stdio process; the launched process does not read `.env`). Pre-fill the existing value as the default so re-running setup is just Enter presses; skip prompting when stdin is not a TTY.
 
 ---
 
