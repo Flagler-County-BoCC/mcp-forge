@@ -70,12 +70,11 @@ available, STOP and ask the user to provide one.
 - `bearer` → `<authEnvPrefix>_TOKEN` (true).
 - `none` → none.
 
-**Field projection metadata**: for each tool, record the operation's
-`responseFields` (BUILD_SPEC) or the response schema's top-level property names
-(OpenAPI) in the `description` is NOT enough — instead append them to the manifest
-`findings` array is NOT correct either. Put them nowhere in the manifest; they
-are consumed by `entrypoints/mcp-server.md`'s field-selection feature at Step 8.
-(If field-selection is not yet implemented, ignore response fields here.)
+**Field projection metadata**: for each tool, set `responseFields` in its
+`mcpTools` entry to the operation's response field names — `responseFields` from
+the BUILD_SPEC operation, or the top-level property names of the OpenAPI response
+schema (the `200`/`2xx` response body `schema.properties` keys), sorted
+alphabetically. These let the generated tool tell callers which fields exist.
 
 **Determinism rules**:
 - Sort `mcpTools` alphabetically by `name`; sort `environmentVariables` by `name`.
@@ -84,8 +83,9 @@ are consumed by `entrypoints/mcp-server.md`'s field-selection feature at Step 8.
 
 ## Output
 1. The `AUDIT_MANIFEST` JSON block (same fenced `// AUDIT_MANIFEST` label and the
-   exact schema from `shared/00-audit.md` — fill `mcpTools`, set the unused
-   arrays `exportedSymbols`/`cliCommands`/`publicApiRoutes` to `[]`).
+   exact schema from `shared/00-audit.md` — fill `mcpTools` with `responseFields`
+   per tool as derived above, set the unused arrays
+   `exportedSymbols`/`cliCommands`/`publicApiRoutes` to `[]`).
 2. A short **Plan** section: count of tools, modules (sorted), and which env vars
    the user must set before running.
 

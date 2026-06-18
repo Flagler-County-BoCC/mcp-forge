@@ -46,6 +46,7 @@ export const AuditManifestSchema = z.object({
         module: z.string(),
         description: z.string(),
         file: z.string(),
+        responseFields: z.array(z.string()).default([]),
       }),
     )
     .default([]),

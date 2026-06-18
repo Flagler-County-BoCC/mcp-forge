@@ -84,6 +84,10 @@ Rules for MCP tool schemas:
    `fields: z.array(z.string()).optional().describe('Return only these top-level fields; omit for all fields.')`.
    This lets AI callers request just the fields they need (e.g. only `Name` from a
    computer record), keeping irrelevant data out of the model's context.
+   When `AUDIT_MANIFEST.mcpTools[*].responseFields` is non-empty for the tool,
+   enumerate them in the describe: `.describe('Return only these fields; omit for
+   all. Available: <comma-separated responseFields>.')`. When it is empty, use the
+   generic describe text above.
 
 ## Determinism Rules
 - Schema files may not import from service or repository files — schemas are leaf-level modules.

@@ -647,3 +647,7 @@ raw tier alone is a complete, valid command set).
 - Generate one Tier-1 command per tool in `AUDIT_MANIFEST.mcpTools` (file name =
   tool name), sorted by name. Generate Tier-2 commands only from an explicit
   `BUSINESS_COMMANDS` list. Never generate mcp-forge meta-commands.
+- A tool's `fields` param `.describe()` enumerates that tool's
+  `AUDIT_MANIFEST.mcpTools[*].responseFields` when non-empty; otherwise it uses the
+  generic "omit for all fields" text. The `selectFields` runtime behavior is
+  unchanged either way.

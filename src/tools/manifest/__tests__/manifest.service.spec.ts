@@ -72,4 +72,22 @@ describe('ManifestService.validate', () => {
       expect(result.valid, `projectType ${type} should be valid`).toBe(true);
     }
   });
+
+  it('accepts a mcpTools entry that includes responseFields', () => {
+    const manifest = {
+      ...VALID_MANIFEST,
+      mcpTools: [
+        {
+          name: 'my-tool',
+          module: 'core',
+          description: 'Does a thing',
+          file: 'src/tools/core/core.tool.ts',
+          responseFields: ['Name', 'Id'],
+        },
+      ],
+    };
+    const result = svc.validate(JSON.stringify(manifest));
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
 });
